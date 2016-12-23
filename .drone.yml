@@ -8,7 +8,7 @@ pipeline:
     environment:
       - CGO_ENABLED=0
     commands:
-      - go build -ldflags "-s -w -X main.build=$DRONE_BUILD_NUMBER" -a -tags netgo
+      - go build -v -ldflags "-s -w -X main.build=$DRONE_BUILD_NUMBER" -a -tags netgo
 
   deploy:
     image: plugins/docker
