@@ -17,10 +17,28 @@ func main() {
 	app.Action = run
 	app.Version = fmt.Sprintf("1.0.%s", build)
 	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:   "debug",
+			EnvVar: "KUBE_DEBUG,PLUGIN_DEBUG",
+		},
+		cli.BoolFlag{
+			Name:   "insecureskiptlsverify",
+			EnvVar: "KUBE_INSECURESKIPTLSVERIFY,PLUGIN_INSECURESKIPTLSVERIFY",
+		},
 		cli.StringFlag{
 			Name:   "token",
 			Usage:  "Kubernetes token used by user to talk to app",
 			EnvVar: "KUBE_TOKEN,PLUGIN_TOKEN",
+		},
+		cli.StringFlag{
+			Name:   "username",
+			Usage:  "Kubernetes username for access kubeapi",
+			EnvVar: "KUBE_USERNAME,PLUGIN_USERNAME",
+		},
+		cli.StringFlag{
+			Name:   "password",
+			Usage:  "Kubernetes password for access kubeapi",
+			EnvVar: "KUBE_PASSWORD,PLUGIN_PASSWORD",
 		},
 		cli.StringFlag{
 			Name:   "ca",
@@ -147,7 +165,11 @@ func run(c *cli.Context) error {
 			Started: c.Int64("job.started"),
 		},
 		Config: Config{
+			Debug: c.Bool("debug"),
+			InsecureSkipTLSVerify: c.Bool("insecureskiptlsverify"),
 			Token:     c.String("token"),
+			Username:  c.String("username"),
+			Password:  c.String("password"),
 			Server:    c.String("server"),
 			Ca:        c.String("ca"),
 			Namespace: c.String("namespace"),

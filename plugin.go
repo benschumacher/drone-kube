@@ -42,11 +42,15 @@ type (
 	}
 
 	Config struct {
-		Ca        string
-		Server    string
-		Token     string
-		Namespace string
-		Template  string
+		Debug                 bool
+		InsecureSkipTLSVerify bool
+		Ca                    string
+		Server                string
+		Token                 string
+		Username              string
+		Password              string
+		Namespace             string
+		Template              string
 	}
 
 	Plugin struct {
@@ -62,10 +66,10 @@ func (p Plugin) Exec() error {
 	if p.Config.Server == "" {
 		log.Fatal("KUBE_SERVER is not defined")
 	}
-	if p.Config.Token == "" {
-		log.Fatal("KUBE_TOKEN is not defined")
+	if p.Config.Username == "" && p.Config.Password == "" && p.Config.Token == "" {
+		log.Fatal("KUBE_USERNAME & KUBE_PASSWORD, or KUBE_TOKEN must be defined")
 	}
-	if p.Config.Ca == "" {
+	if p.Config.Ca == "" && p.Config.InsecureSkipTLSVerify == false {
 		log.Fatal("KUBE_CA is not defined")
 	}
 	if p.Config.Namespace == "" {
@@ -78,7 +82,7 @@ func (p Plugin) Exec() error {
 	// connect to Kubernetes
 	clientset, err := p.createKubeClient()
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
 
 	// parse the template file and do substitutions
@@ -86,6 +90,11 @@ func (p Plugin) Exec() error {
 	if err != nil {
 		return err
 	}
+
+	if p.Config.Debug {
+		log.Println(txt)
+	}
+
 	// convert txt back to []byte and convert to json
 	json, err := utilyaml.ToJSON([]byte(txt))
 	if err != nil {
@@ -93,7 +102,6 @@ func (p Plugin) Exec() error {
 	}
 
 	var dep v1beta1.Deployment
-
 	e := runtime.DecodeInto(api.Codecs.UniversalDecoder(), json, &dep)
 	if e != nil {
 		log.Fatal("Error decoding yaml file to json", e)
@@ -136,14 +144,23 @@ func openAndSub(templateFile string, p Plugin) (string, error) {
 // the kubernetes/client-go project is really hard to understand.
 func (p Plugin) createKubeClient() (*kubernetes.Clientset, error) {
 
-	ca, err := base64.StdEncoding.DecodeString(p.Config.Ca)
+	ca, _ := base64.StdEncoding.DecodeString(p.Config.Ca)
 	config := clientcmdapi.NewConfig()
 	config.Clusters["drone"] = &clientcmdapi.Cluster{
-		Server: p.Config.Server,
+		Server:                   p.Config.Server,
+		InsecureSkipTLSVerify:    p.Config.InsecureSkipTLSVerify,
 		CertificateAuthorityData: ca,
 	}
-	config.AuthInfos["drone"] = &clientcmdapi.AuthInfo{
-		Token: p.Config.Token,
+
+	if p.Config.Token != "" {
+		config.AuthInfos["drone"] = &clientcmdapi.AuthInfo{
+			Token: p.Config.Token,
+		}
+	} else {
+		config.AuthInfos["drone"] = &clientcmdapi.AuthInfo{
+			Username: p.Config.Username,
+			Password: p.Config.Password,
+		}
 	}
 
 	config.Contexts["drone"] = &clientcmdapi.Context{
