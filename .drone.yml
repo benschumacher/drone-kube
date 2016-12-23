@@ -3,14 +3,14 @@ workspace:
   path: src/github.com/vallard/drone-kube
 
 pipeline:
-  test:
+  build:
     image: golang:1.6-alpine
     environment:
       - CGO_ENABLED=0
     commands:
       - go build -ldflags "-s -w -X main.build=$DRONE_BUILD_NUMBER" -a -tags netgo
 
-  latest:
+  deploy:
     image: plugins/docker
     repo: benschumacher/drone-kube
     tags: [ "latest", "1.0", "1" ]
