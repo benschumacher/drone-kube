@@ -102,13 +102,17 @@ func (p Plugin) Exec() error {
 	}
 
 	var dep v1beta1.Deployment
-	e := runtime.DecodeInto(api.Codecs.UniversalDecoder(), json, &dep)
-	if e != nil {
-		log.Fatal("Error decoding yaml file to json", e)
+	err = runtime.DecodeInto(api.Codecs.UniversalDecoder(), json, &dep)
+	if err != nil {
+		log.Fatal("Error decoding yaml file to json", err)
 	}
 	// create a deployment, ignore the deployment that it comes back with, just report the
 	// error.
 	_, err = clientset.ExtensionsV1beta1().Deployments(p.Config.Namespace).Update(&dep)
+
+	if err == nil {
+		fmt.Printf("deployment \"%s\" updated\n", dep.Name)
+	}
 
 	//err = listDeployments(clientset, p)
 	return err
